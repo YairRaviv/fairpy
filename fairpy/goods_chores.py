@@ -1,9 +1,9 @@
 ########## algo 1 ##############
+import math
+import operator
 from typing import List
 
 from fairpy.agentlist import AgentList
-import math
-import operator
 import logging
 logger = logging
 logger.basicConfig(format='[%(levelname)s - %(asctime)s] - %(message)s', level=logging.INFO)
@@ -14,13 +14,13 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
         Ayumi Igarashi, Toby Walsh and Haris Aziz.(2021) , link
         Algorithm 1: Finding an EF1 allocation
         Programmer: Yair Raviv , Rivka Strilitz
-        Example 1:
-        >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":1,"3":0,"4":1,"5":-1,"6":4},"Agent2":{"1":1,"2":-3,"3":-4,"4":3,"5":2,"6":-1},"Agent3":{"1":1,"2":0,"3":0,"4":6,"5":0,"6":0}}))
-        {'Agent1': [3, 6], 'Agent2': [5, 2], 'Agent3': [4, 1]}
 
-        Example 2:
+        >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":1,"3":0,"4":1,"5":-1,"6":4},"Agent2":{"1":1,"2":-3,"3":-4,"4":3,"5":2,"6":-1},"Agent3":{"1":1,"2":0,"3":0,"4":6,"5":0,"6":0}}))
+        {'Agent1': ['3', '6'], 'Agent2': ['5', '2'], 'Agent3': ['4', '1']}
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":-2,"3":1,"4":0,"5":5,"6":3,"7":-2},"Agent2":{"1":3,"2":-1,"3":0,"4":0,"5":7,"6":2,"7":-1},"Agent3":{"1":4,"2":-3,"3":6,"4":-2,"5":4,"6":1,"7":0},"Agent4":{"1":3,"2":-4,"3":2,"4":0,"5":3,"6":-1,"7":-4}}))
-        {'Agent1': [4, 6], 'Agent2': [2, 5], 'Agent3': [7, 3], 'Agent4': [1]}
+        {'Agent1': ['4', '6'], 'Agent2': ['2', '5'], 'Agent3': ['7', '3'], 'Agent4': ['1']}
+        >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1t":-2,"2d":-2,"3":1,"4":0,"5":5,"6":3,"7":-2},"Agent2":{"1t":3,"2d":-1,"3":0,"4":0,"5":7,"6":2,"7":-1},"Agent3":{"1t":4,"2d":-3,"3":6,"4":-2,"5":4,"6":1,"7":0},"Agent4":{"1t":3,"2d":-4,"3":2,"4":0,"5":3,"6":-1,"7":-4}}))
+        {'Agent1': ['4', '6'], 'Agent2': ['2d', '5'], 'Agent3': ['7', '3'], 'Agent4': ['1t']}
     """
 
 
@@ -36,42 +36,48 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
     o_plus = []
     o_minus = []
 
-    for chore in range(1,len(O)+1):
+    for chore in O:
         for agent in agent_list:
             flag = False
             # if any agent values chore for more than 0
             if agent.value(str(chore)) > 0 :
-                o_plus.append(chore)
+                o_plus.append(str(chore))
                 flag = True
                 break;
         # if all agent values chore for less than or equal 0
         if flag is False :
-            o_minus.append(chore)
+            o_minus.append(str(chore))
+
 
     logger.info(f'O plus contains : {[o for o in o_plus]}')
     logger.info(f'O minus contains : {[o for o in o_minus]}')
 
 
     # Add k dummy items to O- such that |O- | = an
-    # k = len(o_minus) % len👎
+    # k = len(o_minus) % len(N)
     # o_minus += [0] * k
     # print(k)
 
     # Allocate items in O- to agents in round-robin sequence
-
+    isNone = False
     while len(o_minus) != 0:
         for agent in agent_list:
             best_val = -math.inf
             allocate_chore = 0
             for chore in o_minus:
+                if chore == None:
+                    allocation[agent.name()].append(None)
+                    allocate_chore = None
+                    isNone = True
+                    break
                 curr_agent_val = agent.value(str(chore))
                 if curr_agent_val > best_val:
                     best_val = curr_agent_val
                     allocate_chore = chore
-
-            allocation[agent.name()].append(allocate_chore)
+            if not isNone:
+                allocation[agent.name()].append(allocate_chore)
             o_minus.remove(allocate_chore)
-            # print(allocation)
+
             if len(o_minus) == 0:
                 break
 
@@ -86,7 +92,7 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
                 curr_agent_val = agent.value(str(chore))
                 if curr_agent_val > best_val:
                     best_val = curr_agent_val
-                    allocate_chore = chore
+                    allocate_chore = str(chore)
 
             allocation[agent.name()].append(allocate_chore)
             o_plus.remove(allocate_chore)
@@ -94,18 +100,20 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
             if len(o_plus) == 0:
                 break
 
-
-
     # Remove dummy items from allocation
     for i in N:
         allocation[i] = [o for o in allocation[i] if o is not None]
 
-    # logger.info(f'after alocating O alocation contains : {allocation}')
+    logger.info(f'after alocating O alocation contains : {allocation}')
     return allocation
 
 
 
+
 def is_EF1(winner, looser, Winner_bundle, Looser_bundle):
+    """
+       this function checks if a given allocation is EF1
+   """
 
     looser_total = sum([looser.value(x) for x in Looser_bundle])
     winner_total = sum([looser.value(x) for x in Winner_bundle])
@@ -122,7 +130,6 @@ def is_EF1(winner, looser, Winner_bundle, Looser_bundle):
             return True
     return False
 
-
 def  Generalized_Adjusted_Winner_Algorithm(agent_list :AgentList)->dict:
     """
     "Fair allocation of indivisible goods and chores" by  Ioannis Caragiannis ,
@@ -138,6 +145,8 @@ def  Generalized_Adjusted_Winner_Algorithm(agent_list :AgentList)->dict:
         {'Agent1': ['1'], 'Agent2': ['2', '3']}
 
     """
+
+
     if len(agent_list) != 2:
         raise "Invalid agents number"
 
@@ -150,6 +159,11 @@ def  Generalized_Adjusted_Winner_Algorithm(agent_list :AgentList)->dict:
     O_w = [x for x in all_items if winner.value(x) >= 0 and looser.value(x) <= 0]
     O_l = [x for x in all_items if winner.value(x) <= 0 and looser.value(x) >= 0]
 
+    logger.info(f'Generalized_Adjusted_Winner_Algorithm ')
+    logger.info(f'O plus contains : {[o for o in O_plus]}')
+    logger.info(f'O minus contains : {[o for o in O_minus]}')
+    logger.info(f'Ol contains : {[o for o in O_w]}')
+    logger.info(f'Ow contains : {[o for o in O_l]}')
 
     for x in O_l:
         if x in O_w:
@@ -169,6 +183,7 @@ def  Generalized_Adjusted_Winner_Algorithm(agent_list :AgentList)->dict:
 
     for t in O_plus_O_minus:
         if is_EF1(winner , looser , Winner_bundle , Looser_bundle):
+            logger.info(f'alocation for winner : {[o for o in Winner_bundle]}, alocation for looser : {[o for o in Looser_bundle]}')
             return {"Agent1" : sorted(Winner_bundle , key=lambda x: int(x)) , "Agent2" : sorted(Looser_bundle , key=lambda x: int(x))}
         if t in O_plus:
             Winner_bundle.remove(t)
@@ -177,14 +192,6 @@ def  Generalized_Adjusted_Winner_Algorithm(agent_list :AgentList)->dict:
             Winner_bundle.append(t)
             Looser_bundle.remove(t)
     return {}
-
-
-
-
-
-
-
-
 
 def Generalized_Moving_knife_Algorithm(agent_list :AgentList , items:list):
     """
@@ -195,11 +202,8 @@ def Generalized_Moving_knife_Algorithm(agent_list :AgentList , items:list):
             Example 1: Non-Negative Proportional Utilities
             >>> Generalized_Moving_knife_Algorithm(AgentList({"Agent1":{"1":0,"2":-1,"3":2,"4":1},"Agent2":{"1":1,"2":3,"3":1,"4":-2},"Agent3":{"1":0,"2":2,"3":0,"4":-1}}) , ['1' , '2' , '3' , '4'])
             {'Agent1': ['3', '4'], 'Agent2': ['1'], 'Agent3': ['2']}
-
-            Example 2: Positive and Negative Proportional Utilities
             >>> Generalized_Moving_knife_Algorithm(AgentList({"Agent1":{"1":0,"2":2,"3":0,"4":-4},"Agent2":{"1":1,"2":-2,"3":1,"4":-2},"Agent3":{"1":0,"2":-4,"3":1,"4":1}}),['1' , '2' , '3' , '4'])
             {'Agent1': ['1', '2', '3'], 'Agent2': [], 'Agent3': ['4']}
-
         """
     result = {}
     agents_num = len(agent_list)
@@ -278,8 +282,20 @@ def  Generalized_Moving_knife_Algorithm_Recursive(agent_list :AgentList , prop_v
             curr_bundle.pop()
     return result
 
-if __name__ == '__main__':
-    import doctest
 
+if __name__ == '__main__':
+    Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":1,"3":0,"4":1,"5":-1,"6":4},"Agent2":{"1":1,"2":-3,"3":-4,"4":3,"5":2,"6":-1},"Agent3":{"1":1,"2":0,"3":0,"4":6,"5":0,"6":0}}))
+    Double_RoundRobin_Algorithm(AgentList({"Agent1": {"1": -2, "2": -2, "3": 1, "4": 0, "5": 5, "6": 3, "7": -2},
+                                           "Agent2": {"1": 3, "2": -1, "3": 0, "4": 0, "5": 7, "6": 2, "7": -1},
+                                           "Agent3": {"1": 4, "2": -3, "3": 6, "4": -2, "5": 4, "6": 1,"7": 0},
+                                           "Agent4": {"1": 3, "2": -4, "3": 2, "4": 0, "5": 3,"6": -1, "7": -4}}))
+    Generalized_Adjusted_Winner_Algorithm(AgentList({"Agent1": {"1": 1, "2": -1, "3": -2}, "Agent2": {"1": -3, "2": 4, "3": -6}}))
+    Generalized_Moving_knife_Algorithm(AgentList({"Agent1":{"1a":0,"2b":-1,"3c":2,"4d":1},"Agent2":{"1a":1,"2b":3,"3c":1,"4d":-2},"Agent3":{"1a":0,"2b":2,"3c":0,"4d":-1}}) , ["1a" , "2b" , "3c" , "4d"])
+    exm = AgentList({"Agent1": {"1": 1, "2": 8, "3": 1, "4": 2}, "Agent2": {"1": 2, "2": 6, "3": 7, "4": 6},
+                     "Agent3": {"1": 4, "2": 2, "3": 2, "4": 2}})
+    res = Double_RoundRobin_Algorithm(exm)
+    import doctest
     (failures, tests) = doctest.testmod(report=True, optionflags=doctest.NORMALIZE_WHITESPACE + doctest.ELLIPSIS)
     print("{} failures, {} tests".format(failures, tests))
+
+
