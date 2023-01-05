@@ -18,9 +18,9 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":1,"3":0,"4":1,"5":-1,"6":4},"Agent2":{"1":1,"2":-3,"3":-4,"4":3,"5":2,"6":-1},"Agent3":{"1":1,"2":0,"3":0,"4":6,"5":0,"6":0}}))
         {'Agent1': ['3', '6'], 'Agent2': ['5', '2'], 'Agent3': ['4', '1']}
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":-2,"3":1,"4":0,"5":5,"6":3,"7":-2},"Agent2":{"1":3,"2":-1,"3":0,"4":0,"5":7,"6":2,"7":-1},"Agent3":{"1":4,"2":-3,"3":6,"4":-2,"5":4,"6":1,"7":0},"Agent4":{"1":3,"2":-4,"3":2,"4":0,"5":3,"6":-1,"7":-4}}))
-        {'Agent1': ['4', '6'], 'Agent2': ['2', '5'], 'Agent3': ['7', '3'], 'Agent4': ['1']}
+        {'Agent1': ['4', '6'], 'Agent2': ['5'], 'Agent3': ['7', '3'], 'Agent4': ['2', '1']}
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1t":-2,"2d":-2,"3":1,"4":0,"5":5,"6":3,"7":-2},"Agent2":{"1t":3,"2d":-1,"3":0,"4":0,"5":7,"6":2,"7":-1},"Agent3":{"1t":4,"2d":-3,"3":6,"4":-2,"5":4,"6":1,"7":0},"Agent4":{"1t":3,"2d":-4,"3":2,"4":0,"5":3,"6":-1,"7":-4}}))
-        {'Agent1': ['4', '6'], 'Agent2': ['2d', '5'], 'Agent3': ['7', '3'], 'Agent4': ['1t']}
+        {'Agent1': ['4', '6'], 'Agent2': ['5'], 'Agent3': ['7', '3'], 'Agent4': ['2d', '1t']}
     """
 
 
@@ -54,28 +54,27 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
 
 
     # Add k dummy items to O- such that |O- | = an
-    # k = len(o_minus) % len(N)
-    # o_minus += [0] * k
-    # print(k)
+    k = len(N)-(len(o_minus) % len(N))
+    o_minus += [None] * k
+    logger.info(f'there are k dummy items k= : {k}')
+
 
     # Allocate items in O- to agents in round-robin sequence
-    isNone = False
+
     while len(o_minus) != 0:
         for agent in agent_list:
             best_val = -math.inf
             allocate_chore = 0
-            for chore in o_minus:
-                if chore == None:
-                    allocation[agent.name()].append(None)
-                    allocate_chore = None
-                    isNone = True
-                    break
+            for chore in o_minus[0:len(o_minus)-k]:
+
                 curr_agent_val = agent.value(str(chore))
                 if curr_agent_val > best_val:
                     best_val = curr_agent_val
                     allocate_chore = chore
-            if not isNone:
-                allocation[agent.name()].append(allocate_chore)
+            if best_val < 0 and k > 0:
+                allocate_chore = None
+                k -= 1
+            allocation[agent.name()].append(allocate_chore)
             o_minus.remove(allocate_chore)
 
             if len(o_minus) == 0:
@@ -106,7 +105,6 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
 
     logger.info(f'after alocating O alocation contains : {allocation}')
     return allocation
-
 
 
 
