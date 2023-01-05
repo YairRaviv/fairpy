@@ -30,29 +30,31 @@ def allocate_o_plus(agent_list :AgentList, o_plus:List, allocation:dict):
                 break
     return allocation
 
-def allocate_o_minus(agent_list :AgentList, o_minus:List, allocation:dict):
-    isNone = False
+def allocate_o_minus(agent_list :AgentList, o_minus:List, allocation:dict,k):
+
+    # Allocate items in O- to agents in round-robin sequence
+
     while len(o_minus) != 0:
         for agent in agent_list:
             best_val = -math.inf
             allocate_chore = 0
-            for chore in o_minus:
-                if chore == None:
-                    allocation[agent.name()].append(None)
-                    allocate_chore = None
-                    isNone = True
-                    break
+            for chore in o_minus[0:len(o_minus) - k]:
+                # if chore is None:
+                #     allocation[agent.name()].append(None)
+                #     allocate_chore = None
+                #     break
                 curr_agent_val = agent.value(str(chore))
                 if curr_agent_val > best_val:
                     best_val = curr_agent_val
                     allocate_chore = chore
-            if not isNone:
-                allocation[agent.name()].append(allocate_chore)
+            if best_val < 0 and k > 0:
+                allocate_chore = None
+                k -= 1
+            allocation[agent.name()].append(allocate_chore)
             o_minus.remove(allocate_chore)
 
             if len(o_minus) == 0:
                 break
-    return allocation
 
 def partitionO(agent_list,O,o_plus,o_minus):
     flag = False
@@ -79,9 +81,9 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":1,"3":0,"4":1,"5":-1,"6":4},"Agent2":{"1":1,"2":-3,"3":-4,"4":3,"5":2,"6":-1},"Agent3":{"1":1,"2":0,"3":0,"4":6,"5":0,"6":0}}))
         {'Agent1': ['3', '6'], 'Agent2': ['5', '2'], 'Agent3': ['4', '1']}
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1":-2,"2":-2,"3":1,"4":0,"5":5,"6":3,"7":-2},"Agent2":{"1":3,"2":-1,"3":0,"4":0,"5":7,"6":2,"7":-1},"Agent3":{"1":4,"2":-3,"3":6,"4":-2,"5":4,"6":1,"7":0},"Agent4":{"1":3,"2":-4,"3":2,"4":0,"5":3,"6":-1,"7":-4}}))
-        {'Agent1': ['4', '6'], 'Agent2': ['2', '5'], 'Agent3': ['7', '3'], 'Agent4': ['1']}
+        {'Agent1': ['4', '6'], 'Agent2': ['5'], 'Agent3': ['7', '3'], 'Agent4': ['2', '1']}
         >>> Double_RoundRobin_Algorithm(AgentList({"Agent1":{"1t":-2,"2d":-2,"3":1,"4":0,"5":5,"6":3,"7":-2},"Agent2":{"1t":3,"2d":-1,"3":0,"4":0,"5":7,"6":2,"7":-1},"Agent3":{"1t":4,"2d":-3,"3":6,"4":-2,"5":4,"6":1,"7":0},"Agent4":{"1t":3,"2d":-4,"3":2,"4":0,"5":3,"6":-1,"7":-4}}))
-        {'Agent1': ['4', '6'], 'Agent2': ['2d', '5'], 'Agent3': ['7', '3'], 'Agent4': ['1t']}
+        {'Agent1': ['4', '6'], 'Agent2': ['5'], 'Agent3': ['7', '3'], 'Agent4': ['2d', '1t']}
     """
 
     N = agent_list.agent_names()
@@ -110,16 +112,14 @@ def  Double_RoundRobin_Algorithm(agent_list :AgentList)->dict:
         executor.submit(partitionO, agent_list, O2, o_plus, o_minus)
 
 
-    # partitionO(agent_list,O,o_plus,o_minus)
-
     # Add k dummy items to O- such that |O- | = an
-    # k = len(o_minus) % len(N)
-    # o_minus += [0] * k
-    # print(k)
+    k = len(N) - (len(o_minus) % len(N))
+    o_minus += [None] * k
+
 
     with cfu.ThreadPoolExecutor(max_workers=WORKERS) as executor:
         # Allocate items in O- to agents in round-robin sequence
-        executor.submit(allocate_o_minus,agent_list,o_minus,allocation)
+        executor.submit(allocate_o_minus,agent_list,o_minus,allocation,k)
         # Allocate items in O+ to agents in reverse round-robin sequence
         executor.submit(allocate_o_plus,agent_list,o_plus,allocation)
 
@@ -234,7 +234,7 @@ def Generalized_Moving_knife_Algorithm(agent_list :AgentList , items:list):
 
 
 
-if __name__ == '__main__':
+if _name_ == '_main_':
 
 
     def ceate_agent_lists(all_agents_size,num_agents,num_items):
@@ -268,9 +268,12 @@ if __name__ == '__main__':
         return run_time
 
 
-    def plot(xpoint,ypoint,title):
+    def plot(xpoint,threadpoint,regularpoint,title):
+
+        plt.subplots(1,1)
         plt.title(title)
-        plt.plot(xpoint,ypoint)
+        plt.plot(xpoint,threadpoint,'b-')
+        plt.plot(xpoint, regularpoint, 'r-')
         plt.xlabel("size of input")
         plt.ylabel("run time")
         plt.show()
@@ -281,29 +284,26 @@ if __name__ == '__main__':
     regular_run_time = calc_time(round_robin_regular, agent_list_robin)
     print("tread run time round_robin",thread_run_time)
     print("regular run time round_robin", regular_run_time)
-    plot(range(len(agent_list_robin)),thread_run_time,"run time of thread round robin")
-    plot(range(len(agent_list_robin)), regular_run_time,"run time of regular round robin")
-    
+    plot(range(len(agent_list_robin)),thread_run_time,regular_run_time,"run time of round robin")
+
+
     agent_list_winner = ceate_agent_lists(30,2,30)
     print("agent list winner",agent_list_winner)
     thread_run_time = calc_time(Generalized_Adjusted_Winner_Algorithm,agent_list_winner)
     regular_run_time = calc_time(Adjusted_Winner_regular,agent_list_winner)
     print("tread run time Adjusted_Winner", thread_run_time)
     print("regular run time Adjusted_Winner", regular_run_time)
-    plot(range(len(agent_list_winner)), thread_run_time, "run time of thread Adjusted_Winner")
-    plot(range(len(agent_list_winner)), regular_run_time, "run time of regular Adjusted_Winner")
+    plot(range(len(agent_list_winner)), thread_run_time, regular_run_time,"run time of  Adjusted_Winner")
+
 
     agent_list_knife = ceate_agent_lists(50,30,50)
     thread_run_time = calc_time_knife(Generalized_Moving_knife_Algorithm,agent_list_knife)
     regular_run_time = calc_time_knife(Moving_knife_regular, agent_list_knife)
     print("tread run time Moving_knife",thread_run_time)
     print("regular run time Moving_knife", regular_run_time)
-    plot(range(len(agent_list_knife)),thread_run_time,"run time of thread Moving_knife")
-    plot(range(len(agent_list_knife)), regular_run_time,"run time of regular Moving_knife")
+    plot(range(len(agent_list_knife)),thread_run_time,regular_run_time,"run time of Moving_knife")
+
 
     import doctest
     (failures, tests) = doctest.testmod(report=True, optionflags=doctest.NORMALIZE_WHITESPACE + doctest.ELLIPSIS)
     print("{} failures, {} tests".format(failures, tests))
-
-
-
